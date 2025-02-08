@@ -1,0 +1,62 @@
+Sequence:
+- take in and process guess
+    - Get flag from user -> flag_shuffled_buf
+    - disallow newlines? terminate with newline?
+- decode hardcoded address "ns1rev.lac.tf"
+- hostname_struct_ptr = gethostbyname(hardcoded_address)
+    - Do some struct shenanigans
+- build encoded "len.rev.lac.tf" and call decode function
+    - decode function runs over and scrambles input flag
+    - Could null terminate as first byte of input flag?
+- more hostname ns_parse stuff 
+    - populate ns_rr struct
+    - unsigned int cpylen
+    - memcpy(to: ns_rdata_out, from: cs_rr.rdata + 1, len: cpylen = cs_rr.rdata)
+- if strlen(input_flag) != int(ns_rdata_out), fail
+    - Should be 37d
+- do some weird block
+While loop:
+- decode format string %d.rev.lac.tf, snprintf to "0.rev.lac.tf"
+- make res_query(0.rev.lac.tf, 1, 16, 1, 512), do some checks/modifications
+    - If wrong format (ns_rr_struct.type), sleep 1, print "."
+    - ns_rr_rdata_len = *ns_rr_struct.rdata
+    - parse_output?? = ns_rr_struct.rdata + 1 
+    - if (ns_rr_rdata_len >= 8)
+        - do something? Advance a bit and do some copying? 
+        - copy something to parse_output
+    result_num_?? = 0
+    - if (ns_rr_rdata_len & 0100) != 0, so if bit 3 is nonzero
+        - maybe_output_rdata[0] = ns_rr_struct.rdata + 1
+        result_num_?? = 4
+    if (ns_rr_rdata_len & 0010) != 0, so if bit 2 is set 
+         *(_WORD *)&maybe_output_rdata[result_num_QQQ] = *(_WORD *)&ns_rr_data_start[result_num_QQQ];
+            result_num += 2;
+    if (ns_rr_rdata_len & 0001) != 0, so bit 1 set 
+           maybe_output_rdata[result_num_QQQ] = ns_rr_data_start[result_num_QQQ];
+    - null terminate,  long_data_out_QQ[rr_data_len] = 0;
+Parse long_data_out_QQ:
+    - first_str_ldo = strtok(long_data_out_QQ, ";")
+    - second_str_ldo = strtok(NULL, ";")
+    - if first_str_ldo
+        - first_str_ldo_long = strtol(first_str_ldo)
+        - corr_check_ptr = first_str_ldo_long
+        - if !(second_str_ldo)
+            goto sleep_putchar_corrcheck
+        goto sscanf_stuff
+    - if second_str_ldo
+sscanf_stuff:
+        - if (sscanf(input_str = second_str_ldo, fmt=("%d,%d"), sscanf_d1, sscanf_d2) == 2)
+            if (sscanf_d1 < 8*strlen(myflag))
+                - char_to_check = myflag[d1_out >> 3]
+                - if (bittest(&char_to_check, ~(char) d1_out & 7))
+                    if !sscanf_d2, "Incorrect", fail and exit
+                - else if sscanf_d2 == 1, "Incorrect", fail and exit
+        - 
+sleep_putchar_corrcheck:
+        - sleep(1), putchar "."
+        - if (corr_check_ptr == -1)
+            - "correct", exit
+
+
+Possible flag:
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
