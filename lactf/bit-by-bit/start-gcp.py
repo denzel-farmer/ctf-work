@@ -200,21 +200,19 @@ def merge_all():
         if filename.startswith("query_cache_") and filename.endswith(".pkl") and filename != qc_file:
             query_cache.merge(filename)
 
-# Every 20 seconds, do git pull, merge, then add/commit/push the query cache
+# Every 20 seconds, update bucket with new query cache
 def qc_merge_thread():
     while True:
-        time.sleep(20)
         print("Merging query caches...")
-        merge_all()
-        os.system("git pull")
-        os.system(f"git add {qc_file} {flag_file}")
-        os.system(f"git commit -m 'update query cache'")
-        os.system("git push")
+        download_state()
+        upload_state()
+        time.sleep(20)
 
-# Launch qc merge thread
-t = threading.Thread(target=qc_merge_thread)
-t.start()
+# # Launch qc merge thread
+# t = threading.Thread(target=qc_merge_thread)
+# t.start()
 #print(query_cache.cache)
+qc_merge_thread()
 
 def print_thread(*args, **kwargs):
     thread_id = threading.get_ident()
@@ -494,11 +492,12 @@ def hash_name(worker_name):
 
 # --- Main --------------------------------------------------
 if __name__ == '__main__':
+    pass
 
 
-
-    random.seed(43 + hash_name(WORKER_ID))
-    launch_threads(3)
+    # random.seed(43 + hash_name(WORKER_ID))
+    # launch_threads(3)
+    
 
     # flag = get_flag()
     # print("FLAG:", flag)
