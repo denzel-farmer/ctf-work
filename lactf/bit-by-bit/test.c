@@ -175,7 +175,7 @@ int64_t main(int a1, char **a2, char **a3)
         puts("\nIncorrect.");
         goto LABEL_38;
     }
-    corr_check_ptr = 411576;
+    corr_check_ptr = 6835232;
     while (1)
     {
         *(_QWORD *)decoded_fmt_string = 0x7D3F6774633F7534LL;
@@ -256,7 +256,10 @@ int64_t main(int a1, char **a2, char **a3)
                     d1_out = sscanf_out_d1;
                     if (d1_out < 8 * strlen(some_flag_shuffled_QQ))
                     {
+                        // d1_out is bit index into entire flag, bucket into byte intex
                         flag_char_to_check = some_flag_shuffled_QQ[d1_out >> 3];
+
+                        // Check the bit at index into the byte (endianess: ??)
                         if (bittest(&flag_char_to_check, ~(_BYTE)d1_out & 7))
                         {
                             if (!sscanf_out_d2)
@@ -264,7 +267,7 @@ int64_t main(int a1, char **a2, char **a3)
                             incorrect_exit:
                                 v4 = "\nIncorrect.";
                                 puts("\nIncorrect.");
-                                goto exit_ret_negone;
+                               // goto exit_ret_negone;
                             }
                         }
                         else if (sscanf_out_d2 == 1)
