@@ -146,7 +146,10 @@ class QueryCache:
         self.lock = threading.Lock()
         if os.path.exists(filename):
             with open(filename, 'rb') as f:
-                self.cache = pickle.load(f)
+                try:
+                    self.cache = pickle.load(f)
+                except Exception:
+                    self.cache = {}
         else:
             self.cache = {}
             self._save(self.filename)
