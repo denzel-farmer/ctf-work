@@ -27,6 +27,10 @@ resolver_lock = threading.Lock()
 
 SLEEP_DELAY = 1
 
+WORKER_ID = 0
+NUM_WORKERS = 3
+
+
 class QueryCache:
     def __init__(self, filename):
         self.filename = filename
@@ -49,10 +53,24 @@ class QueryCache:
     def insert(self, node_id, value):
         with self.lock:
             self.cache[node_id] = value
-            self._save()
+            self._save()  
+    def merge(self, other_filename):
+        with self.lock:
+            if os.path.exists(other_filename):
+                with open(other_filename, 'rb') as f:
+                    other_cache = pickle.load(f)
+                    self.cache.update(other_cache)
+                    self._save()
+            else:
+                print(f"File {other_filename} does not exist.")
 
+qc_file = f"query_cache_{WORKER_ID}.pkl"
+query_cache = QueryCache(qc_file)
+query_cache.merge("query_cache.pkl")
+for i in range(NUM_WORKERS):
+    if i != WORKER_ID:
+        query_cache.merge(f"query_cache_{i}.pkl")
 
-query_cache = QueryCache('query_cache.pkl')
 #print(query_cache.cache)
 
 def print_thread(*args, **kwargs):
@@ -323,7 +341,7 @@ def launch_threads(count=2):
 # --- Main --------------------------------------------------
 if __name__ == '__main__':
 
-    random.seed(43)
+    random.seed(43 + WORKER_ID)
     launch_threads(3)
 
     # flag = get_flag()
