@@ -16,14 +16,14 @@ Sequence:
     - Should be 37d
 - do some weird block
 While loop:
-- decode format string %d.rev.lac.tf, snprintf to "0.rev.lac.tf"
+- decode format string %d.rev.lac.tf, snprintf to "%d.rev.lac.tf", corr_check_ptr
 - make res_query(0.rev.lac.tf, 1, 16, 1, 512), do some checks/modifications
     - decoding query call:
         - dname = "0.rev.lac.tf"
         - int class = 1 
         - int type = 16
         - int 
-    - If wrong format (ns_rr_struct.type), sleep 1, print "."
+    - If wrong format (ns_rr_struct.type != 16 / TXT), continue
     - ns_rr_rdata_len = *ns_rr_struct.rdata
     - parse_output?? = ns_rr_struct.rdata + 1 
     - if (ns_rr_rdata_len >= 8)
@@ -61,6 +61,10 @@ sleep_putchar_corrcheck:
         - sleep(1), putchar "."
         - if (corr_check_ptr == -1)
             - "correct", exit
+
+
+<next dns num>;<num 1>,<num 2>;
+
 
 
 Possible flag:
