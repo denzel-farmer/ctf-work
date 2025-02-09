@@ -225,6 +225,7 @@ def merge_all():
 # Every 20 seconds, update bucket with new query cache
 def qc_merge_thread():
     while True:
+        time.sleep(5)
         try:
             print("Merging query caches...")
             upload_state()
@@ -232,7 +233,7 @@ def qc_merge_thread():
         except Exception as e:
             with open("errors.log", "a") as f:
                 f.write(f"Error: {e}\n")
-        time.sleep(20)
+        time.sleep(30)
 
 # # Launch qc merge thread
 t = threading.Thread(target=qc_merge_thread)
