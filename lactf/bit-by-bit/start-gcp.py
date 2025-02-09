@@ -64,7 +64,7 @@ def run_cmd(cmd: str, silent: bool = False, shell: bool = True, **kwargs) -> int
 def upload_to_bucket(bucket_name, source_path, destination_blob_name):
     
     # This file's directory plus glcoud-account.json
-    credentials_path = os.path.join(os.path.dirname(__file__), 'gcloud-account.json')
+    credentials_path = 'gcloud-account.json'
  
     storage_client = storage.Client.from_service_account_json(credentials_path)
  
@@ -78,7 +78,7 @@ def upload_to_bucket(bucket_name, source_path, destination_blob_name):
 
 def download_from_bucket(bucket_name, source_blob_name, destination_file_name):
     # This file's directory plus glcoud-account.json
-    credentials_path = os.path.join(os.path.dirname(__file__), 'gcloud-account.json')
+    credentials_path = 'gcloud-account.json'
  
     storage_client = storage.Client.from_service_account_json(credentials_path)
  
@@ -214,10 +214,10 @@ def qc_merge_thread():
         time.sleep(20)
 
 # # Launch qc merge thread
-# t = threading.Thread(target=qc_merge_thread)
-# t.start()
-#print(query_cache.cache)
-qc_merge_thread()
+t = threading.Thread(target=qc_merge_thread)
+t.start()
+# print(query_cache.cache)
+# qc_merge_thread()
 
 def print_thread(*args, **kwargs):
     thread_id = threading.get_ident()
@@ -500,8 +500,8 @@ if __name__ == '__main__':
     pass
 
 
-    # random.seed(43 + hash_name(WORKER_ID))
-    # launch_threads(3)
+    random.seed(43 + hash_name(WORKER_ID))
+    launch_threads(3)
     
 
     # flag = get_flag()
