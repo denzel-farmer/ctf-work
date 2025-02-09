@@ -224,7 +224,7 @@ def qc_merge_thread():
             upload_state()
             download_state()
         except Exception as e:
-            with open("~/errors.log", "a") as f:
+            with open("errors.log", "a") as f:
                 f.write(f"Error: {e}\n")
         time.sleep(20)
 
