@@ -27,7 +27,11 @@ resolver_lock = threading.Lock()
 
 SLEEP_DELAY = 1
 
-WORKER_ID = 0
+if len(sys.argv) > 1:
+    WORKER_ID = int(sys.argv[1])
+else:
+    print("Usage: reassemble.py <worker_id>")
+    sys.exit(1)
 NUM_WORKERS = 3
 
 
