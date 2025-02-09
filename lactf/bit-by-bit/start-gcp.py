@@ -481,10 +481,23 @@ def launch_threads(count=2):
       #  t.daemon = True
         t.start()
 
+def hash_name(worker_name):
+    """
+    Hash the worker name to get a random number.
+    """
+    # Get the worker name
+    # Hash the worker name
+    hash_value = hash(worker_name)
+    # Get a random number from the hash value
+    random_number = hash_value % 10000
+    return random_number
+
 # --- Main --------------------------------------------------
 if __name__ == '__main__':
 
-    random.seed(43 + WORKER_ID)
+
+
+    random.seed(43 + hash_name(WORKER_ID))
     launch_threads(3)
 
     # flag = get_flag()
