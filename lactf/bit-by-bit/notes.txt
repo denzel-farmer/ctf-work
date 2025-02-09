@@ -18,6 +18,11 @@ Sequence:
 While loop:
 - decode format string %d.rev.lac.tf, snprintf to "0.rev.lac.tf"
 - make res_query(0.rev.lac.tf, 1, 16, 1, 512), do some checks/modifications
+    - decoding query call:
+        - dname = "0.rev.lac.tf"
+        - int class = 1 
+        - int type = 16
+        - int 
     - If wrong format (ns_rr_struct.type), sleep 1, print "."
     - ns_rr_rdata_len = *ns_rr_struct.rdata
     - parse_output?? = ns_rr_struct.rdata + 1 
