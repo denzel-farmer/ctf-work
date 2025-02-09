@@ -126,8 +126,9 @@ def download_all_matching_from_bucket(bucket_name, regex_pattern, destination_fo
             # Construct the local file path (using the basename to avoid creating extra directories)
             destination_file_path = os.path.join(destination_folder, os.path.basename(blob.name))
             try:
-                blob.download_to_filename(destination_file_path)
                 time.sleep(0.5)
+                blob.download_to_filename(destination_file_path)
+           
                 print(f'File {blob.name} downloaded to {destination_file_path}')
             except Exception as e:
                 print(f"Failed to download {blob.name}: {e}")
