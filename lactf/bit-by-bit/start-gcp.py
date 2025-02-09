@@ -44,10 +44,15 @@ resolver_lock = threading.Lock()
 SLEEP_DELAY = 1
 
 if len(sys.argv) > 1:
-    WORKER_ID = sys.argv[1]
+    full_worker_name = sys.argv[1]
 else:
     print("Usage: reassemble.py <worker_id>")
     sys.exit(1)
+
+# Format x86-worker-0.c.w4118-f23-ta.internal
+hostname_short = full_worker_name.split(".")[0]
+# Format x86-worker-0
+WORKER_ID = int(hostname_short.split("-")[-1])
 
 
 def run_cmd(cmd: str, silent: bool = False, shell: bool = True, **kwargs) -> int:
