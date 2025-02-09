@@ -175,7 +175,7 @@ int64_t main(int a1, char **a2, char **a3)
         puts("\nIncorrect.");
         goto LABEL_38;
     }
-    corr_check_ptr = 0;
+    corr_check_ptr = 411576;
     while (1)
     {
         *(_QWORD *)decoded_fmt_string = 0x7D3F6774633F7534LL;
@@ -241,6 +241,15 @@ int64_t main(int a1, char **a2, char **a3)
             {
             sscanf_stuff:
                 printf("Second string exists: (%s)\n", sscanf_input);
+
+                FILE *seq_file = fopen("sequence.txt", "a");
+                if (seq_file != NULL) {
+                    fprintf(seq_file, "SECOND STRING: %s (first string was %s)\n", sscanf_input, first_str_ldo);
+                    fclose(seq_file);
+                } else {
+                    perror("Error opening sequence file");
+                }
+
                 v3 = (int64_t)"%d,%d";
                 if ((unsigned int)sscanf(sscanf_input, "%d,%d", &sscanf_out_d1, &sscanf_out_d2) == 2)
                 {
