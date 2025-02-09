@@ -138,7 +138,7 @@ class QueryCache:
                 self.cache = pickle.load(f)
         else:
             self.cache = {}
-            self._save()
+            self._save(self.filename)
 
     def _save(self, filename):
         with open(filename, 'wb') as f:
