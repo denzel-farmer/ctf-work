@@ -65,6 +65,9 @@ sleep_putchar_corrcheck:
 
 <next dns num>;<num 1>,<num 2>;
 
+Bits so far:
+8793406 : (203, 1)
+3837659 : (107, 0)
 
 
 Possible flag:
