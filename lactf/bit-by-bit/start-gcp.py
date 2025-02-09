@@ -125,8 +125,13 @@ def download_all_matching_from_bucket(bucket_name, regex_pattern, destination_fo
         if pattern.fullmatch(blob.name):
             # Construct the local file path (using the basename to avoid creating extra directories)
             destination_file_path = os.path.join(destination_folder, os.path.basename(blob.name))
-            blob.download_to_filename(destination_file_path)
-            print(f'File {blob.name} downloaded to {destination_file_path}')
+            try:
+                blob.download_to_filename(destination_file_path)
+                time.sleep(0.5)
+                print(f'File {blob.name} downloaded to {destination_file_path}')
+            except Exception as e:
+                print(f"Failed to download {blob.name}: {e}")
+                print("Continuing")
             found_match = True
 
     if not found_match:
