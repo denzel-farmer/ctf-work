@@ -69,34 +69,36 @@ def query(node_id):
 
         # Build the domain name (like decode_formatstring + snprintf in C)
         domain = f"{node_id}.rev.lac.tf"
-        with resolver_lock:
-            try:
-                # Query for a TXT record
+    
+        try:
+            # Query for a TXT record
+            with resolver_lock:
                 answers = resolver.resolve(domain, "TXT")
-            except dns.resolver.NXDOMAIN:
-                # If the domain does not exist, cache None and return
-                print_thread(f"DOMAIN DOES NOT EXIST: {domain}")
-                query_cache.insert(node_id, (None, None))
-                return None, None
-            except dns.resolver.NoNameservers:
-                # If the DNS query fails due to SERVFAIL, retry up to 10 times
-                retries = 10
-                while retries > 0:
-                    print_thread(f"QUERY FAILED (SERVFAIL), retrying... ({10 - retries + 1}/10)")
-                    time.sleep(SLEEP_DELAY)
-                    try:
+        except dns.resolver.NXDOMAIN:
+            # If the domain does not exist, cache None and return
+            print_thread(f"DOMAIN DOES NOT EXIST: {domain}")
+            query_cache.insert(node_id, (None, None))
+            return None, None
+        except dns.resolver.NoNameservers:
+            # If the DNS query fails due to SERVFAIL, retry up to 10 times
+            retries = 10
+            while retries > 0:
+                print_thread(f"QUERY FAILED (SERVFAIL), retrying... ({10 - retries + 1}/10)")
+                time.sleep(SLEEP_DELAY)
+                try:
+                    with resolver_lock:
                         answers = resolver.resolve(domain, "TXT")
-                        break
-                    except dns.resolver.NoNameservers:
-                        retries -= 1
-                if retries == 0:
-                    print_thread(f"QUERY FAILED AFTER 10 RETRIES")
-                    return None, None
-            except Exception as e:
-                # If the DNS query fails for other reasons, print the exception and return
-                print_thread(f"QUERY FAILED: {e}")
+                    break
+                except dns.resolver.NoNameservers:
+                    retries -= 1
+            if retries == 0:
+                print_thread(f"QUERY FAILED AFTER 10 RETRIES")
                 return None, None
-        
+        except Exception as e:
+            # If the DNS query fails for other reasons, print the exception and return
+            print_thread(f"QUERY FAILED: {e}")
+            return None, None
+    
         # Take the first TXT record and join its strings.
         # (dnspython returns a list of byte strings in each TXT record.)
         txt = "".join([s.decode() for s in answers[0].strings])
