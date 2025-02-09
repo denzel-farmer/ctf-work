@@ -69,42 +69,42 @@ int64_t main(int a1, char **a2, char **a3)
     char *v4;                              // rdi
     char *fgets_err;                       // rdx
     int64_t result;                        // rax
-    struct hostent *hostname_struct_ptr;   // rbx
-    struct __res_state *dns_res_state_QQ;  // rax
+    struct hostent *ns1rev_hostent;        // rbx
+    struct __res_state *resolv_state;      // rax
     size_t h_length;                       // rdx
-    int v10;                               // eax
-    uint64_t cplen;                        // rax
-    size_t myflag_len;                     // rbx
-    int v13;                               // eax
+    int len_ns_msg_len;                    // eax
+    uint64_t len_rr_txt_len;                        // rax
+    size_t input_flag_length;                     // rbx
+    int msg_len;                               // eax
     char *maybe_output_rdata;              // rdi
     uint64_t rr_data_len;                  // rax
     const unsigned char *ns_rr_data_start; // rsi
     int64_t result_num_QQQ;                // rcx
-    char *second_str_ldo;                  // rax
-    char *sscanf_input;                    // r8
-    const char *dup_first_str_ldo;         // rdi
-    unsigned int first_str_ldo_to_long;    // eax
+    char *bit_info_str;                  // rax
+    char *dup_bit_info_str;                    // r8
+    const char *dup_next_dns_num_str;         // rdi
+    unsigned int next_dns_num;    // eax
     void (*v22)(void);                     // rdx
-    int flag_char_to_check;                // eax
-    unsigned int corr_check_ptr;           // [rsp+4h] [rbp-1414h]
-    char *first_str_ldo;                   // [rsp+10h] [rbp-1408h]
-    char *dup_second_str_ldo;              // [rsp+10h] [rbp-1408h]
-    int d1_out;                            // [rsp+10h] [rbp-1408h]
-    int sscanf_out_d1;                     // [rsp+28h] [rbp-13F0h] BYREF
-    int sscanf_out_d2;                     // [rsp+2Ch] [rbp-13ECh] BYREF
-    ns_msg v30;                            // [rsp+30h] [rbp-13E8h] BYREF
-    ns_msg v31;                            // [rsp+80h] [rbp-1398h] BYREF
-    ns_rr ns_rr_struct_parser_out;         // [rsp+D0h] [rbp-1348h] BYREF
-    ns_rr ns_rr_struct_parser_out2;        // [rsp+4F0h] [rbp-F28h] BYREF
-    unsigned char ns_rev_lac_name[14];     // [rsp+915h] [rbp-B03h] BYREF
-    unsigned char decoded_fmt_string[14];  // [rsp+923h] [rbp-AF5h] BYREF
-    unsigned char hostname_str_2[15];      // [rsp+931h] [rbp-AE7h] BYREF
-    char some_flag_shuffled_QQ[144];       // [rsp+940h] [rbp-AD8h] BYREF
-    char decoded_snprintf[256];            // [rsp+9D0h] [rbp-A48h] BYREF
-    char ns_rdata_out[256];                // [rsp+AD0h] [rbp-948h] BYREF
-    unsigned char const_1_qq[512];         // [rsp+BD0h] [rbp-848h] BYREF
-    unsigned char v41[512];                // [rsp+DD0h] [rbp-648h] BYREF
-    char long_data_out_QQ[1032];           // [rsp+FD0h] [rbp-448h] BYREF
+    int input_flag_byte;                // eax
+    unsigned int curr_dns_num;           // [rsp+4h] [rbp-1414h]
+    char *next_dns_num_str;                   // [rsp+10h] [rbp-1408h]
+    char *dup_bit_info_str;              // [rsp+10h] [rbp-1408h]
+    int dup_bit_index;                            // [rsp+10h] [rbp-1408h]
+    int bit_index;                     // [rsp+28h] [rbp-13F0h] BYREF
+    int true_bit_value;                     // [rsp+2Ch] [rbp-13ECh] BYREF
+    ns_msg len_ns_parse_handle;            // [rsp+30h] [rbp-13E8h] BYREF
+    ns_msg ns_parse_handle;                            // [rsp+80h] [rbp-1398h] BYREF
+    ns_rr len_ns_rr;                       // [rsp+D0h] [rbp-1348h] BYREF
+    ns_rr ans_ns_rr;        // [rsp+4F0h] [rbp-F28h] BYREF
+    unsigned char ns1rev_name_str[14];     // [rsp+915h] [rbp-B03h] BYREF
+    unsigned char d_rev_fmt_str[14];  // [rsp+923h] [rbp-AF5h] BYREF
+    unsigned char len_rev_name_str[15];    // [rsp+931h] [rbp-AE7h] BYREF
+    char input_flag[144];                  // [rsp+940h] [rbp-AD8h] BYREF
+    char curr_domain[256];            // [rsp+9D0h] [rbp-A48h] BYREF
+    char len_rr_txt[256];                // [rsp+AD0h] [rbp-948h] BYREF
+    unsigned char ans_array2[512];         // [rsp+BD0h] [rbp-848h] BYREF
+    unsigned char ans_array[512];          // [rsp+DD0h] [rbp-648h] BYREF
+    char query_data[1032];           // [rsp+FD0h] [rbp-448h] BYREF
     uint64_t v43;                          // [rsp+13D8h] [rbp-40h]
 
     // v43 = __readfsqword(0x28u);
@@ -113,27 +113,28 @@ int64_t main(int a1, char **a2, char **a3)
     __printf_chk(2LL, "Enter the flag: ");
     v3 = 129LL;
 
-    v4 = some_flag_shuffled_QQ;
-    fgets_err = fgets(some_flag_shuffled_QQ, 129, stdin);
+    // Read user test flag
+    v4 = input_flag;
+    fgets_err = fgets(input_flag, 129, stdin);
     result = 1LL;
 
     if (!fgets_err)
         goto exit_label;
 
-    some_flag_shuffled_QQ[strcspn(some_flag_shuffled_QQ, "\n")] = 0; // Null/newline terminate?
-                                                                     //
+    input_flag[strcspn(input_flag, "\n")] = 0; // Null/newline terminate?
+                                               //
     __printf_chk(2LL, "Checking (this may take a while)");
 
     if (__res_init() < 0)
         goto an_err_occured;
 
-    *(_QWORD *)ns_rev_lac_name = 0x4C0E56455211534ELL;
-    *(_QWORD *)&ns_rev_lac_name[6] = 0x2046540E43414C0ELL;
-    decode_first_hostname_ns_rev((int64_t)ns_rev_lac_name); // NS REV LACTF
-                                                            //
-    hostname_struct_ptr = gethostbyname(ns_rev_lac_name);
+    // Decode hostname ns1rev.lac.tf
+    *(_QWORD *)ns1rev_name_str = 0x4C0E56455211534ELL;
+    *(_QWORD *)&ns1rev_name_str[6] = 0x2046540E43414C0ELL;
+    decode_first_hostname_ns_rev((int64_t)ns1rev_name_str);
+    ns1rev_hostent = gethostbyname(ns1rev_name_str);
 
-    if (!hostname_struct_ptr)
+    if (!ns1rev_hostent)
     {
         v3 = 1LL;
         v4 = "\nAn unexpected error occurred. Is the program running in a restricted sandbox?\n";
@@ -145,16 +146,26 @@ int64_t main(int a1, char **a2, char **a3)
         goto LABEL_38;
     }
 
-    dns_res_state_QQ = __res_state();
-    h_length = hostname_struct_ptr->h_length;
-    dns_res_state_QQ->nscount = 1;
-    memcpy(&dns_res_state_QQ->nsaddr_list[0].sin_addr, *(const void **)hostname_struct_ptr->h_addr_list, h_length);
+    // Set DNS nameserver address
+    resolv_state = __res_state();
+    h_length = ns1rev_hostent->h_length;
+    resolv_state->nscount = 1;
+    memcpy(&resolv_state->nsaddr_list[0].sin_addr, *(const void **)ns1rev_hostent->h_addr_list, h_length);
 
-    *(_QWORD *)hostname_str_2 = 0x3B646A7E2768666CLL;
-    *(_QWORD *)&hostname_str_2[7] = 0x2A41500F7D7A743BLL; // len.rev.lac
-    decode_hostname2_and_scramble_flag((int64_t)hostname_str_2);
-    v10 = res_query(hostname_str_2, ns_c_in, ns_t_txt, v41, sizeof(v41));
-    if (v10 < 0 || (ns_initparse(v41, v10, &v30), ns_parserr(&v30, ns_s_an, 0, &ns_rr_struct_parser_out) < 0) || ns_rr_struct_parser_out.type != 16)
+    // Decode hostname len.rev.lac.tf
+    *(_QWORD *)len_rev_name_str = 0x3B646A7E2768666CLL;
+    *(_QWORD *)&len_rev_name_str[7] = 0x2A41500F7D7A743BLL;
+    // NOTE: appears to also scramble the input flag--maybe a bug? Maybe final decode step?
+    decode_hostname2_and_scramble_flag((int64_t)len_rev_name_str);
+
+    // Query len.rev.lac.tf to get expected flag length (37d)
+    len_ns_msg_len = res_query(len_rev_name_str, ns_c_in, ns_t_txt, ans_array, sizeof(ans_array));
+    
+    // Parse response to get expected_flag_length
+    if (len_ns_msg_len < 0 ||
+        (ns_initparse(ans_array, len_ns_msg_len, &len_ns_parse_handle),
+         ns_parserr(&len_ns_parse_handle, ns_s_an, 0, &len_ns_rr) < 0) ||
+        len_ns_rr.type != 16)
     {
     an_err_occured:
         v3 = 1LL;
@@ -164,40 +175,50 @@ int64_t main(int a1, char **a2, char **a3)
         result = 4294967294LL;
         goto exit_label;
     }
-    cplen = *ns_rr_struct_parser_out.rdata;
-    memcpy(ns_rdata_out, ns_rr_struct_parser_out.rdata + 1, cplen);
-    ns_rdata_out[cplen] = 0;
+    len_rr_txt_len = *len_ns_rr.rdata;
+    memcpy(len_rr_txt, len_ns_rr.rdata + 1, len_rr_txt_len);
+    len_rr_txt[len_rr_txt_len] = 0;
     v3 = 0LL;
-    myflag_len = strlen(some_flag_shuffled_QQ); // obfuscated?
-    if (myflag_len != (int)strtol(ns_rdata_out, 0LL, 10))
+    
+    // Check input flag length
+    input_flag_length = strlen(input_flag);
+    if (input_flag_length != (int)strtol(len_rr_txt, 0LL, 10))
     {
         v4 = "\nIncorrect.";
         puts("\nIncorrect.");
         goto LABEL_38;
     }
-    corr_check_ptr = 6835232;
+
+    // Begin DNS query loop
+    curr_dns_num = 0;
     while (1)
     {
-        *(_QWORD *)decoded_fmt_string = 0x7D3F6774633F7534LL;
-        *(_QWORD *)&decoded_fmt_string[6] = 0x1177653F72707D3FLL;
-        decode_formatstring((int64_t)decoded_fmt_string);
-        __snprintf_chk(decoded_snprintf, 256LL, 2LL, 256LL, decoded_fmt_string, corr_check_ptr);
-        v13 = res_query(decoded_snprintf, ns_c_in, ns_t_txt, const_1_qq, sizeof(const_1_qq));
-        if (v13 < 0)
+        // Decode format string %d.rev.lac.tf
+        *(_QWORD *)d_rev_fmt_str = 0x7D3F6774633F7534LL;
+        *(_QWORD *)&d_rev_fmt_str[6] = 0x1177653F72707D3FLL;
+        decode_formatstring((int64_t)d_rev_fmt_str);
+
+        // Construct actual domain name and make request
+        __snprintf_chk(curr_domain, 256LL, 2LL, 256LL, d_rev_fmt_str, curr_dns_num);
+        msg_len = res_query(curr_domain, ns_c_in, ns_t_txt, ans_array2, sizeof(ans_array2));
+        if (msg_len < 0)
             break;
-        ns_initparse(const_1_qq, v13, &v31);
-        if (ns_parserr(&v31, ns_s_an, 0, &ns_rr_struct_parser_out2) < 0)
+
+        // Parse TXT response from ANSWER section
+        ns_initparse(ans_array2, msg_len, &ns_parse_handle);
+        if (ns_parserr(&ns_parse_handle, ns_s_an, 0, &ans_ns_rr) < 0)
             break;
-        if (ns_rr_struct_parser_out2.type == 16)
+        if (ans_ns_rr.type == 16) // TXT 
         {
-            maybe_output_rdata = long_data_out_QQ;
-            rr_data_len = *ns_rr_struct_parser_out2.rdata;
-            ns_rr_data_start = ns_rr_struct_parser_out2.rdata + 1;
+            // Complicated parsing code, extracts from rdata in chunks to populate query_data
+            maybe_output_rdata = query_data;
+            rr_data_len = *ans_ns_rr.rdata;
+            ns_rr_data_start = ans_ns_rr.rdata + 1;
             if ((unsigned int)rr_data_len >= 8)
             {
-                memcpy(long_data_out_QQ, ns_rr_data_start, 8 * (rr_data_len >> 3));
+                memcpy(query_data, ns_rr_data_start, 8 * (rr_data_len >> 3));
                 ns_rr_data_start += 8 * (rr_data_len >> 3);
-                maybe_output_rdata = &long_data_out_QQ[8 * (rr_data_len >> 3)];
+                maybe_output_rdata = &query_data[8 * (rr_data_len >> 3)];
             }
             result_num_QQQ = 0LL;
             if ((rr_data_len & 4) != 0)
@@ -212,74 +233,94 @@ int64_t main(int a1, char **a2, char **a3)
             }
             if ((rr_data_len & 1) != 0)
                 maybe_output_rdata[result_num_QQQ] = ns_rr_data_start[result_num_QQQ];
-            long_data_out_QQ[rr_data_len] = 0;
+            query_data[rr_data_len] = 0;
 
-            first_str_ldo = strtok(long_data_out_QQ, ";");
-            second_str_ldo = strtok(0LL, ";");
-            sscanf_input = second_str_ldo;
-            if (first_str_ldo)
+            // Query data is ASCII string in format "<next dns num>;<bit index>,<bit value>", where bit index and value optional
+            
+            // Split next dns num and bit info
+            next_dns_num_str = strtok(query_data, ";");
+            bit_info_str = strtok(0LL, ";");
+            dup_bit_info_str = bit_info_str;
+            if (next_dns_num_str)
             {
+                // Code I added, dumps sequence to disk
                 FILE *seq_file = fopen("sequence.txt", "a");
-                if (seq_file != NULL) {
-                    fprintf(seq_file, "%s\n", first_str_ldo);
+                if (seq_file != NULL)
+                {
+                    fprintf(seq_file, "%s\n", next_dns_num_str);
                     fclose(seq_file);
-                } else {
+                }
+                else
+                {
                     perror("Error opening sequence file");
                 }
+            
                 v3 = 0LL;
-                dup_first_str_ldo = first_str_ldo;
-                dup_second_str_ldo = second_str_ldo;
-                first_str_ldo_to_long = strtol(dup_first_str_ldo, 0LL, 10);
-                sscanf_input = dup_second_str_ldo;
-                corr_check_ptr = first_str_ldo_to_long;
-                // If second string is null but first string is not, check if finished
-                if (!dup_second_str_ldo)
-                    goto sleep_putchar_corrcheck;
-                goto sscanf_stuff;
-            }
-            if (second_str_ldo)
-            {
-            sscanf_stuff:
-                printf("Second string exists: (%s)\n", sscanf_input);
 
+                // Convert next dns num to long
+                dup_next_dns_num_str = next_dns_num_str;
+                dup_bit_info_str = bit_info_str;
+                next_dns_num = strtol(dup_next_dns_num_str, 0LL, 10);
+                dup_bit_info_str = dup_bit_info_str;
+
+                // Update current dns num
+                curr_dns_num = next_dns_num;
+
+                // If second string is null but first string is not, check if correct and if not continue
+                if (!dup_bit_info_str)
+                    goto check_end_continue;
+                goto parse_bitinfo;
+            }
+            if (bit_info_str)
+            {
+            parse_bitinfo:
+                // My added printing/dumping code
+                printf("Second string exists: (%s)\n", dup_bit_info_str);
                 FILE *seq_file = fopen("sequence.txt", "a");
-                if (seq_file != NULL) {
-                    fprintf(seq_file, "SECOND STRING: %s (first string was %s)\n", sscanf_input, first_str_ldo);
+                if (seq_file != NULL)
+                {
+                    fprintf(seq_file, "SECOND STRING: %s (first string was %s)\n", dup_bit_info_str, next_dns_num_str);
                     fclose(seq_file);
-                } else {
+                }
+                else
+                {
                     perror("Error opening sequence file");
                 }
 
                 v3 = (int64_t)"%d,%d";
-                if ((unsigned int)sscanf(sscanf_input, "%d,%d", &sscanf_out_d1, &sscanf_out_d2) == 2)
+
+                // Parse bit info -> bit index and bit value
+                if ((unsigned int)sscanf(dup_bit_info_str, "%d,%d", &bit_index, &true_bit_value) == 2)
                 {
-                    d1_out = sscanf_out_d1;
-                    if (d1_out < 8 * strlen(some_flag_shuffled_QQ))
+                    dup_bit_index = bit_index;
+                    if (dup_bit_index < 8 * strlen(input_flag))
                     {
-                        // d1_out is bit index into entire flag, bucket into byte intex
-                        flag_char_to_check = some_flag_shuffled_QQ[d1_out >> 3];
+                        // Convert bit_index to byte index by dividing by 8 (>> 3), extract indexed byte
+                        input_flag_byte = input_flag[dup_bit_index >> 3];
 
                         // Check the bit at index into the byte (endianess: ??)
-                        if (bittest(&flag_char_to_check, ~(_BYTE)d1_out & 7))
+                        if (bittest(&input_flag_byte, ~(_BYTE)dup_bit_index & 7))
                         {
-                            if (!sscanf_out_d2)
+                            if (!true_bit_value)
                             {
                             incorrect_exit:
                                 v4 = "\nIncorrect.";
                                 puts("\nIncorrect.");
-                               // goto exit_ret_negone;
+                                // NOTE: Commented out this goto so binary will continue even if input flag incorrect
+                                // goto exit_ret_negone;
                             }
                         }
-                        else if (sscanf_out_d2 == 1)
+                        else if (true_bit_value == 1)
                         {
-                            goto incorrect_exit;
+                            // NOTE: Commented out this goto so binary will continue even if input flag incorrect
+                            // goto incorrect_exit;
                         }
                     }
                 }
-            sleep_putchar_corrcheck:
+            check_end_continue:
                 sleep(1u);
                 // putchar(46);
-                if (corr_check_ptr == -1)
+                if (curr_dns_num == -1)
                 {
                     v4 = "Correct!";
                     puts("Correct!");
@@ -303,7 +344,3 @@ exit_label:
     printf("EXIT CODE: %lld\n", v3);
     return result;
 }
-/* Orphan comments:
-
-
-*/
