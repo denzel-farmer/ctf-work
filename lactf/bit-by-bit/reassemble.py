@@ -32,7 +32,8 @@ if len(sys.argv) > 1:
 else:
     print("Usage: reassemble.py <worker_id>")
     sys.exit(1)
-NUM_WORKERS = 3
+
+NUM_WORKERS = 30
 
 
 class QueryCache:
@@ -69,12 +70,31 @@ class QueryCache:
                 print(f"File {other_filename} does not exist.")
 
 qc_file = f"query_cache_{WORKER_ID}.pkl"
+flag_file = f"flag_{WORKER_ID}.txt"
 query_cache = QueryCache(qc_file)
-query_cache.merge("query_cache.pkl")
-for i in range(NUM_WORKERS):
-    if i != WORKER_ID:
-        query_cache.merge(f"query_cache_{i}.pkl")
 
+
+def merge_all():
+    # Merge all query caches into one
+    query_cache.merge("query_cache.pkl")
+    for i in range(NUM_WORKERS):
+        if i != WORKER_ID:
+            query_cache.merge(f"query_cache_{i}.pkl")
+
+# Every 20 seconds, do git pull, merge, then add/commit/push the query cache
+def qc_merge_thread():
+    while True:
+        time.sleep(20)
+        print("Merging query caches...")
+        merge_all()
+        os.system("git pull")
+        os.system(f"git add {qc_file} {flag_file}")
+        os.system(f"git commit -m 'update query cache'")
+        os.system("git push")
+
+# Launch qc merge thread
+t = threading.Thread(target=qc_merge_thread)
+t.start()
 #print(query_cache.cache)
 
 def print_thread(*args, **kwargs):
@@ -143,7 +163,7 @@ def query(node_id):
             bit_data = (int(d1_str), int(d2_str))
             print_thread("FOUND BIT DATA")
             # Append bit data line to "flag.txt" or create it if it doesn't exist
-            with open("flag.txt", "a") as f:
+            with open(flag_file, "a") as f:
                 f.write(f"{node_id}:{next_node_id};{bit_data}\n")
         
         # Cache the result
