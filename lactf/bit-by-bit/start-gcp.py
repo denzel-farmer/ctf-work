@@ -102,7 +102,7 @@ def download_all_matching_from_bucket(bucket_name, regex_pattern, destination_fo
       destination_folder (str): Local folder where matching files will be saved.
     """
     # Build the path to your credentials file (assumed to be in the same directory)
-    credentials_path = os.path.join(os.path.dirname(__file__), 'gcloud-account.json')
+    credentials_path = 'gcloud-account.json'
     
     # Create a storage client using the service account credentials
     storage_client = storage.Client.from_service_account_json(credentials_path)
@@ -179,6 +179,7 @@ query_cache = QueryCache(qc_file)
 
 
 BUCKET_NAME = "microwave-manifests"
+STATE_FOLDER = "state"
 
 def upload_state():
     # check if flag file exists
@@ -193,7 +194,16 @@ def download_state():
     base = "query_cache_"
     ext = ".pkl"
     qc_regex = rf'^{base}.*{ext}$'
-    download_all_matching_from_bucket(BUCKET_NAME, qc_regex, ".")
+
+    # Make a folder for state from other workers
+    state_dir = STATE_FOLDER
+    if not os.path.exists(state_dir):
+        os.mkdir(state_dir)
+
+    download_all_matching_from_bucket(BUCKET_NAME, qc_regex, "state")
+
+    flag_regex = rf'^flag.*.txt$'
+    download_all_matching_from_bucket(BUCKET_NAME, flag_regex, "state")
 
     # Merge all query caches into one
     merge_all()
@@ -201,16 +211,17 @@ def download_state():
 def merge_all():
     # Merge all query caches into one
     query_cache.merge("query_cache.pkl")
-    for filename in os.listdir('.'):
+    for filename in os.listdir(STATE_FOLDER):
         if filename.startswith("query_cache_") and filename.endswith(".pkl") and filename != qc_file:
-            query_cache.merge(filename)
+            file_path = os.path.join(STATE_FOLDER, filename)
+            query_cache.merge(file_path)
 
 # Every 20 seconds, update bucket with new query cache
 def qc_merge_thread():
     while True:
         print("Merging query caches...")
-        download_state()
         upload_state()
+        download_state()
         time.sleep(20)
 
 # # Launch qc merge thread
