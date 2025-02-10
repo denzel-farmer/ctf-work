@@ -119,26 +119,40 @@ def download_all_matching_from_bucket(bucket_name, regex_pattern, destination_fo
     blobs = bucket.list_blobs()
     
     found_match = False
-    for blob in blobs:
-        # Use fullmatch to ensure the entire blob name matches the pattern.
-        # You could also use pattern.search(blob.name) if you only need a substring match.
-        if pattern.fullmatch(blob.name):
-            # Construct the local file path (using the basename to avoid creating extra directories)
-            destination_file_path = os.path.join(destination_folder, os.path.basename(blob.name))
-            try:
-                time.sleep(0.5)
-                blob.download_to_filename(destination_file_path)
-           
-                print(f'File {blob.name} downloaded to {destination_file_path}')
-            except Exception as e:
-                print(f"Failed to download {blob.name}: {e}")
-                print("Continuing")
-            found_match = True
+    matching_blobs = [blob for blob in blobs if pattern.fullmatch(blob.name)]
+    with tqdm(total=len(matching_blobs), desc="Downloading files", unit="file") as progress:
+        for blob in matching_blobs:
+            # Use fullmatch to ensure the entire blob name matches the pattern.
+            # You could also use pattern.search(blob.name) if you only need a substring match.
+            if pattern.fullmatch(blob.name):
+                # Construct the local file path (using the basename to avoid creating extra directories)
+                destination_file_path = os.path.join(destination_folder, os.path.basename(blob.name))
+                try:
+                    time.sleep(0.5)
+                    blob.download_to_filename(destination_file_path)
+                    progress.set_postfix_str(f"Downloaded {blob.name}")
+            
+                 #   print(f'File {blob.name} downloaded to {destination_file_path}')
+                except Exception as e:
+                    progress.set_postfix_str(f"Failed to download {blob.name}")
+                    print(f"Failed to download {blob.name}: {e}")
+                    print("Continuing")
+                found_match = True
+                progress.update(1)
 
     if not found_match:
         print("No files matching the regex were found in the bucket.")
 
 # Example usag
+# Randomly assign threads to start at targeted index (so that if there are 3000 threads, 700 will be working targeted)
+is_targeted = random.random() < (700/3000)
+global_start_index = None
+if is_targeted:
+    # # Read all lines from key_startpoints.txt and select one at random
+    with open("key_startpoints.txt", "r") as f:
+        lines = f.readlines()
+    global_start_index = random.choice(lines).strip()
+
 
 class QueryCache:
     def __init__(self, filename):
@@ -211,8 +225,8 @@ def download_state():
 
     download_all_matching_from_bucket(BUCKET_NAME, qc_regex, "state")
 
-    flag_regex = rf'^flag.*.txt$'
-    download_all_matching_from_bucket(BUCKET_NAME, flag_regex, "state")
+    # flag_regex = rf'^flag.*.txt$'
+    # download_all_matching_from_bucket(BUCKET_NAME, flag_regex, "state")
 
     # Merge all query caches into one
     merge_all()
@@ -317,7 +331,8 @@ def query(node_id):
         query_cache.insert(node_id, (next_node_id, bit_data))
 
         # Sleep to avoid rate-limiting
-        time.sleep(SLEEP_DELAY) 
+        if not is_targeted:
+            time.sleep(SLEEP_DELAY) 
 
         return next_node_id, bit_data
 
@@ -470,14 +485,22 @@ def get_flag():
         flag_chars.append(chr(int(byte, 2)))
     return ''.join(flag_chars)
 
+
+
 # Run a thread that starts running at a random index up to 9000 steps 
 def random_thread():
     # Start at a random index from 0 to 10^7
-    start_index = random.randint(0, 10**7)
+    if is_targeted and global_start_index is not None:
+        print("Starting at targeted index", global_start_index)
+        start_index = int(global_start_index)
+    else:  
+        start_index = random.randint(0, 10**7)
     print_thread("Starting at index", start_index)
     # Query until sequence value found
     while True:
         next_node, _ = query(start_index)
+        if is_targeted:
+            time.sleep(0.3333)
         if next_node is not None:
             start_index = next_node
             break
@@ -526,7 +549,10 @@ if __name__ == '__main__':
 
 
     random.seed(43 + hash_name(WORKER_ID))
-    launch_threads(3)
+    if not is_targeted:
+        launch_threads(3)
+    else:
+        launch_threads(1)
     
 
     # flag = get_flag()
