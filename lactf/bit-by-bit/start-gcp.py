@@ -128,7 +128,7 @@ def download_all_matching_from_bucket(bucket_name, regex_pattern, destination_fo
                 # Construct the local file path (using the basename to avoid creating extra directories)
                 destination_file_path = os.path.join(destination_folder, os.path.basename(blob.name))
                 try:
-                    time.sleep(0.5)
+                    time.sleep(0.2)
                     blob.download_to_filename(destination_file_path)
                     progress.set_postfix_str(f"Downloaded {blob.name}")
             
@@ -145,7 +145,7 @@ def download_all_matching_from_bucket(bucket_name, regex_pattern, destination_fo
 
 # Example usag
 # Randomly assign threads to start at targeted index (so that if there are 3000 threads, 700 will be working targeted)
-is_targeted = random.random() < (700/3000)
+is_targeted = False#True#random.random() < (700/3000)
 global_start_index = None
 if is_targeted:
     # # Read all lines from key_startpoints.txt and select one at random
@@ -204,6 +204,40 @@ query_cache = QueryCache(qc_file)
 BUCKET_NAME = "microwave-manifests"
 STATE_FOLDER = "state"
 
+
+def preload_cache():
+    # Open record file "records.txt" and filter line by line 
+    # to print each line
+    with open("records.txt", "r") as f:
+        for line in f:
+            try:
+                # Split the line by space
+                parts = line.split()
+                node_id = int(parts[0].split(".")[0])
+                core_record = parts[4]
+                # strip first and last " 
+                core_record = core_record[1:-1]
+
+                # Split format <next_node_id>;<bit idx>,<bit val>
+                nums = core_record.split(";")
+
+                next_node_id = int(nums[0])
+                if len(parts) < 2:
+                    query_cache.insert(node_id, (next_node_id, None))
+                    continue
+                
+                bit_data = tuple(map(int, nums[1].split(",")))
+                print(f"Preloading cache with {node_id} -> {next_node_id}, {bit_data}")
+                query_cache.insert(node_id, (next_node_id, bit_data))
+                # Write to flag.txt
+                with open(flag_file, "a") as f:
+                    f.write(f"{node_id}:{next_node_id};{bit_data}\n")
+            except Exception as e:
+                continue
+
+preload_cache()
+
+
 def upload_state():
     # check if flag file exists
     if os.path.exists(flag_file):
@@ -242,7 +276,8 @@ def merge_all():
 # Every 20 seconds, update bucket with new query cache
 def qc_merge_thread():
     while True:
-        time.sleep(5)
+        time.sleep(500)
+        continue
         try:
             print("Merging query caches...")
             upload_state()
@@ -263,6 +298,7 @@ def print_thread(*args, **kwargs):
     with threading.Lock():
         print(f"[{thread_id}] ", end="")
         print(*args, **kwargs)
+
 
 def query(node_id):
         # Check the cache first

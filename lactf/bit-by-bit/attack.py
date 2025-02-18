@@ -53,6 +53,7 @@ import dns.resolver
 
 
 
+
 # In the real program the “format string” is stored obfuscated.
 # Here we simply use a fixed format string.
 SLEEP_DELAY = 2
